@@ -211,10 +211,10 @@ Prefs: {'genre': 'metal', 'mood': 'angry', 'energy': 0.95, 'likes_acoustic': Tru
 
 ## 9. Personal Reflection
 
-**Biggest learning moment:** realizing that "recommend" just means "score everything and sort." The intelligence is all in the weights, and I was the one choosing them. Changing one number (genre 2.0 to 1.0) changed what a "happy pop" fan sees.
+My biggest learning moment was realizing a recommender is really just math and sorting. Every song gets points for matching genre, mood and energy, and the list is sorted by score. When I changed the genre points from 2.0 to 1.0, Gym Hero went from a clear #2 to basically tied with Rooftop Lights (2.78 vs 2.77). One number changed what a "happy pop" listener would see, which showed me the person choosing the weights has a lot of control.
 
-**How AI helped, and when I double-checked:** the AI was useful for explaining collaborative vs content-based filtering, suggesting the energy closeness formula, generating new songs in valid CSV format, and brainstorming adversarial profiles. I still had to check its work. I verified the scores by hand for Sunrise City (2.0 + 1.0 + 1.47 + 0.41 = 4.88), and fixed the starter import so `python -m src.main` actually runs.
+I used an AI agent to build the project from the assignment steps. Its first version used things we haven't covered in class, so I had it simplified to loops, if statements and dictionaries. After that I read through score_song to understand how each point is added, and I checked Sunrise City's score by hand to make sure the 4.88 was right.
 
-**What surprised me:** even with four features and simple addition, the output *feels* like a real recommendation, especially with reasons attached. That made me realize how easy it is to trust a system that only looks smart.
+What surprised me was how real the results feel with only four features. Seeing the reasons printed next to each song makes it seem smart, but it only knows labels. Gym Hero shows up for happy pop fans just because it's tagged "pop," even though it's an intense workout song.
 
-**What I would try next:** a genre similarity map, using the unused audio features, and a "no good match" message so the system is honest about what it does not know.
+If I kept going, I would make "indie pop" count as partly "pop" so songs aren't ignored because of a slightly different label.
