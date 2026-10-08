@@ -59,3 +59,45 @@ def test_explain_recommendation_returns_non_empty_string():
     explanation = rec.explain_recommendation(user, song)
     assert isinstance(explanation, str)
     assert explanation.strip() != ""
+
+
+from src.recommender import load_songs, score_song, recommend_songs
+
+
+def test_load_songs_converts_numeric_fields():
+    songs = load_songs("data/songs.csv")
+    assert len(songs) >= 10
+    assert isinstance(songs[0]["energy"], float)
+    assert isinstance(songs[0]["id"], int)
+
+
+def test_score_song_returns_score_and_reasons():
+    prefs = {"genre": "pop", "mood": "happy", "energy": 0.8}
+    song = {"genre": "pop", "mood": "happy", "energy": 0.8, "acousticness": 0.2}
+    score, reasons = score_song(prefs, song)
+    assert score == 4.5  # 2.0 genre + 1.0 mood + 1.5 perfect energy
+    assert any("genre match" in r for r in reasons)
+
+
+def test_energy_rewards_closeness_not_magnitude():
+    prefs = {"energy": 0.3}
+    near = {"genre": "x", "mood": "x", "energy": 0.3, "acousticness": 0.5}
+    far = {"genre": "x", "mood": "x", "energy": 0.9, "acousticness": 0.5}
+    assert score_song(prefs, near)[0] > score_song(prefs, far)[0]
+
+
+def test_recommend_songs_sorted_and_limited():
+    songs = load_songs("data/songs.csv")
+    recs = recommend_songs({"genre": "lofi", "mood": "chill", "energy": 0.35}, songs, k=3)
+    assert len(recs) == 3
+    scores = [s for _, s, _ in recs]
+    assert scores == sorted(scores, reverse=True)
+    assert recs[0][0]["genre"] == "lofi"
+
+
+def test_diversity_penalty_demotes_repeat_artist():
+    songs = load_songs("data/songs.csv")
+    prefs = {"genre": "lofi", "mood": "chill", "energy": 0.35, "likes_acoustic": True}
+    plain = [s["title"] for s, _, _ in recommend_songs(prefs, songs, k=5)]
+    diverse = [s["title"] for s, _, _ in recommend_songs(prefs, songs, k=5, diversity=True)]
+    assert plain.index("Focus Flow") < diverse.index("Focus Flow")
