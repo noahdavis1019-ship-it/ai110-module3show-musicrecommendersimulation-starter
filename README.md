@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-**VibeFinder 1.0** is a content-based music recommender written in Python. It loads a 20-song catalog from `data/songs.csv`, scores every song against a listener's taste profile (genre, mood, target energy, acoustic preference), ranks the catalog, and prints the top 5 with a plain-language reason for every point awarded. It also supports switchable scoring modes and an optional diversity penalty so the same artist or genre does not crowd the top of the list.
+**VibeFinder 1.0** is a content-based music recommender written in Python. It loads a 20-song catalog from `data/songs.csv`, scores every song against a listener's taste profile (genre, mood, target energy, acoustic preference), ranks the catalog, and prints the top 5 with a plain-language reason for every point awarded.
 
 ---
 
@@ -105,87 +105,48 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Default "pop/happy" profile (`python -m src.main --profile pop`):
+Default "pop/happy" profile (`python -m src.main`):
 
 ```
-Loaded songs: 20
-
-Profile: pop  |  mode=balanced  diversity=off
+==================================================
+Profile: High-Energy Pop
 Prefs: {'genre': 'pop', 'mood': 'happy', 'energy': 0.8, 'likes_acoustic': False}
-
-#  Title                 Artist             Score  Reasons
------------------------------------------------------------------------------------------------------------
-1  Sunrise City          Neon Echo           4.88  genre match (+2.00); mood match (+1.00); energy 0.82 vs
-                                                   target 0.80 (+1.47); non-acoustic fit (+0.41)
-2  Gym Hero              Max Pulse           3.78  genre match (+2.00); energy 0.93 vs target 0.80 (+1.30);
-                                                   non-acoustic fit (+0.47)
-3  Rooftop Lights        Indigo Parade       2.77  mood match (+1.00); energy 0.76 vs target 0.80 (+1.44);
-                                                   non-acoustic fit (+0.33)
-4  Concrete Crown        Blockwise           1.91  energy 0.78 vs target 0.80 (+1.47); non-acoustic fit
-                                                   (+0.44)
-5  Ritmo de Noche        Calle Luna          1.83  energy 0.85 vs target 0.80 (+1.43); non-acoustic fit
-                                                   (+0.40)
-
+==================================================
+1. Sunrise City by Neon Echo - Score: 4.88
+   Because: genre match (+2.0), mood match (+1.0), energy close to target (+1.47), acoustic fit (+0.41)
+2. Gym Hero by Max Pulse - Score: 3.78
+   Because: genre match (+2.0), energy close to target (+1.30), acoustic fit (+0.47)
+3. Rooftop Lights by Indigo Parade - Score: 2.77
+   Because: mood match (+1.0), energy close to target (+1.44), acoustic fit (+0.33)
+4. Concrete Crown by Blockwise - Score: 1.91
+   Because: energy close to target (+1.47), acoustic fit (+0.44)
+5. Ritmo de Noche by Calle Luna - Score: 1.83
+   Because: energy close to target (+1.43), acoustic fit (+0.40)
 ```
 
-Output for all six profiles (core + adversarial) is in the [model card](model_card.md#7-evaluation).
-
-### CLI options
-
-```bash
-python -m src.main                         # all profiles
-python -m src.main --profile lofi          # one profile
-python -m src.main --mode energy_focused   # balanced | genre_first | mood_first | energy_focused
-python -m src.main --diversity             # penalize repeat artists (-1.0) and genres (-0.5)
-```
+Output for all six profiles is in the [model card](model_card.md#7-evaluation).
 
 ---
 
 ## Experiments You Tried
 
-**Weight shift (energy x2, genre x0.5).** I ran the pop profile in `energy_focused` mode (genre 2.0 to 1.0, energy 1.5 to 3.0). Sunrise City stayed #1, but Rooftop Lights (indie pop, happy) jumped over Gym Hero (pop, intense). That felt *more* accurate: a happy pop listener probably wants Rooftop Lights over a gym track. For the `sad_but_hyped` profile the change made the list nearly a tie (3.46 vs 3.42), so it got different but not clearly better.
+**Weight shift (energy x2, genre x0.5).** I temporarily changed `GENRE_POINTS` from 2.0 to 1.0 and `ENERGY_POINTS` from 1.5 to 3.0 at the top of `recommender.py`, then changed them back. Sunrise City stayed #1, but Rooftop Lights (indie pop, happy) jumped over Gym Hero (pop, intense). That felt *more* accurate: a happy pop listener probably wants Rooftop Lights over a gym track. For the Sad but Hyped profile the change made the top two nearly tie, so it got different but not clearly better.
 
 ```
-Loaded songs: 20
-
-Profile: pop  |  mode=energy_focused  diversity=off
+==================================================
+Profile: High-Energy Pop (EXPERIMENT: genre 1.0, energy 3.0)
 Prefs: {'genre': 'pop', 'mood': 'happy', 'energy': 0.8, 'likes_acoustic': False}
-
-#  Title                 Artist             Score  Reasons
------------------------------------------------------------------------------------------------------------
-1  Sunrise City          Neon Echo           5.35  genre match (+1.00); mood match (+1.00); energy 0.82 vs
-                                                   target 0.80 (+2.94); non-acoustic fit (+0.41)
-2  Rooftop Lights        Indigo Parade       4.21  mood match (+1.00); energy 0.76 vs target 0.80 (+2.88);
-                                                   non-acoustic fit (+0.33)
-3  Gym Hero              Max Pulse           4.08  genre match (+1.00); energy 0.93 vs target 0.80 (+2.61);
-                                                   non-acoustic fit (+0.47)
-4  Concrete Crown        Blockwise           3.38  energy 0.78 vs target 0.80 (+2.94); non-acoustic fit
-                                                   (+0.44)
-5  Ritmo de Noche        Calle Luna          3.25  energy 0.85 vs target 0.80 (+2.85); non-acoustic fit
-                                                   (+0.40)
-```
-
-**Diversity penalty.** With `--diversity`, the lofi profile no longer gives LoRoom two of the top four spots. Focus Flow drops from #3 to #4 and an ambient track moves up.
-
-```
-Loaded songs: 20
-
-Profile: lofi  |  mode=balanced  diversity=on
-Prefs: {'genre': 'lofi', 'mood': 'chill', 'energy': 0.35, 'likes_acoustic': True}
-
-#  Title                 Artist             Score  Reasons
------------------------------------------------------------------------------------------------------------
-1  Library Rain          Paper Lanterns      4.93  genre match (+2.00); mood match (+1.00); energy 0.35 vs
-                                                   target 0.35 (+1.50); acoustic fit (+0.43)
-2  Midnight Coding       LoRoom              4.25  genre match (+2.00); mood match (+1.00); energy 0.42 vs
-                                                   target 0.35 (+1.40); acoustic fit (+0.35); repeat genre
-                                                   (-0.50)
-3  Spacewalk Thoughts    Orbit Bloom         2.85  mood match (+1.00); energy 0.28 vs target 0.35 (+1.40);
-                                                   acoustic fit (+0.46)
-4  Focus Flow            LoRoom              2.31  genre match (+2.00); energy 0.40 vs target 0.35 (+1.42);
-                                                   acoustic fit (+0.39); repeat artist (-1.00); repeat genre
-                                                   (-0.50)
-5  Coffee Shop Stories   Slow Stereo         1.92  energy 0.37 vs target 0.35 (+1.47); acoustic fit (+0.45)
+==================================================
+1. Sunrise City by Neon Echo - Score: 5.35
+   Because: genre match (+1.0), mood match (+1.0), energy close to target (+2.94), acoustic fit (+0.41)
+2. Rooftop Lights by Indigo Parade - Score: 4.21
+   Because: mood match (+1.0), energy close to target (+2.88), acoustic fit (+0.33)
+3. Gym Hero by Max Pulse - Score: 4.08
+   Because: genre match (+1.0), energy close to target (+2.61), acoustic fit (+0.47)
+4. Concrete Crown by Blockwise - Score: 3.38
+   Because: energy close to target (+2.94), acoustic fit (+0.44)
+5. Ritmo de Noche by Calle Luna - Score: 3.25
+   Because: energy close to target (+2.85), acoustic fit (+0.40)
 ```
 
 ---
